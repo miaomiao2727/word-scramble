@@ -35,7 +35,6 @@ function init () {
     [
       "oar",
       "rod",
-      "nard",
       "moan",
       "dam",
       "road",
@@ -63,7 +62,7 @@ function init () {
     ]
   );
   var mask = Element('div', {class: 'mask'});;
-  //var mask = new String("<div class='mask'>&nbsp;</div>");
+
   new Insertion.Before("input", mask);
 }
 
@@ -239,10 +238,10 @@ Anagram.prototype = {
     }).update("");
     // shift to fill the gap
     // ..x....
-    //cl(gap);
+
     wordArrayRandom = wordArrayRandom.without(wordArrayRandom[gap]);
     this.untypedCharacters = this.untypedCharacters.without(c);
-    //cl(wordArrayRandom);
+
   },
   updateScore: function(){
     this.score.update([this.solved.length, "/", this.matches.length].join(''));
