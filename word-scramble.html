@@ -1,0 +1,112 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+  <title>Word Scramble</title>
+  <script type="text/javascript" src="javascripts/prototype.js"></script>
+  <script type="text/javascript" src="javascripts/scriptaculous.js?load=effects"></script>
+  <script type="text/javascript" src="javascripts/functions.js"></script>
+  <link rel="stylesheet" href="stylesheets/root.css" type="text/css" media="screen" />
+</head>
+<body id="body">
+  
+  <div id="head">
+    <div id="HeadInset">
+      <h1>Javascript Word Scramble</h1>
+      <p>A simple word game built with the <a href="http://www.prototypejs.org" target="_blank">Prototype</a> and <a href="http://script.aculo.us" target="_blank">Scriptaculous</a> JavaScript libraries.</p>
+      <ul id="nav">
+        <li><a href="#Objective">Objective</a></li>
+        <li><a href="#About">About</a></li>
+        <li><a href="#Download">Download</a></li>
+        <li><a href="#Objective">Objective</a></li>
+      </ul>
+    </div>
+  </div>
+  
+  <div id="shell">
+    
+    <!-- unsolved matches -->
+    <div id="UnsolvedMatches" class="column">
+      <h4><span id="UnsolvedMatchesNumber"></span> Unsolved Matches</h4>
+      <div id="matches" style="display: none;"></div>
+    </div>
+
+    <!-- center -->
+    <div id="stage">
+      <!-- typed characters -->
+      <div id="typed">
+        <div id="typedSlot0" class="slot"></div>
+        <div id="typedSlot1" class="slot"></div>
+        <div id="typedSlot2" class="slot"></div>
+        <div id="typedSlot3" class="slot"></div>
+        <div id="typedSlot4" class="slot"></div>
+        <div id="typedSlot5" class="slot"></div>
+        <div class="clear"></div>
+      </div>
+  
+      <!-- untyped characters -->
+  
+      <div id="untyped" style="display: none;">
+        <div id="untypedSlot0" class="slot"></div>
+        <div id="untypedSlot1" class="slot"></div>
+        <div id="untypedSlot2" class="slot"></div>
+        <div id="untypedSlot3" class="slot"></div>
+        <div id="untypedSlot4" class="slot"></div>
+        <div id="untypedSlot5" class="slot"></div>
+        <div class="clear"></div>
+      </div>
+      
+      <div id="score"></div>
+
+    </div>
+  
+    <!-- solved matches -->
+    <div id="SolvedMatches" class="column">
+      <h4><span id="SolvedMatchesNumber"></span> Solved Matches</h4>
+      <ul id="solved"><li>Start typing to discover words!</li></ul>
+    </div>
+  
+    <div id="swatches">
+      <div id="swatch1"></div>
+      <div id="swatch2"></div>
+      <div id="swatch3"></div>
+      <div id="swatch4"></div>
+      <div id="swatch5"></div>
+    </div>
+  
+    <p id="tag"><a href="http://deletem3.com">by Matt Garrett</a></p>
+  
+  </div>
+  
+  <div id="content">
+    <div class="margin">
+      
+      <div class="ColumnLeft">
+        <a name="Objective"></a>
+        <h2>Objective</h2>
+        <p>The point of this game is to discover all of the words made of the scrambled big word.  It's pretty simple.  <strong>Start typing</strong>, and hit '<strong>enter</strong>' when you think you've got a word.  If you mess up, '<strong>backspace</strong>' will delete the last typed character.  If you're out of ideas, hit 'enter' to mix up the characters, and maybe by chance it will spell a word you didn't think of.  Currently, there is no database or 'back-end' to this, so there's just one word and it's matches to play with.</p>
+
+        <a name="About"></a>
+        <h2>About</h2>
+        <p>This game was a personal exercise by <a href="http://deletem3.com" target="_blank">Matt Garrett</a> at creating a <a href="http://www.prototypejs.org" target="_blank">Prototype</a> and <a href="http://script.aculo.us" target="_blank">Scriptaculous</a> powered JavaScript game.  This was inspired by <a href="http://www.shockwave.com/gamelanding/texttwist.jsp" target="_blank">Text Twist</a> and some other game with nearly identical gameplay.  Actually, I had been wanting to create a word-based JavaScript powered game for a while now, and the Text Twist game seemed simple enough to start with.</p>
+        
+        <p>Because this was a personal project, I have only tested this in Firefox.  I don't intend on spending much time debugging other browser's problems.</p>
+      
+        <a name="Download"></a>
+        <h2>Download &amp; Play</h2>
+        <p>x</p>
+      </div>
+      <div class="clear"></div>
+    </div>
+  </div>
+  
+  <input type="text" name="input" value="" id="input" />
+  
+  <script type="text/javascript">
+    $$(".slot").invoke("hide");
+    init();
+  </script>
+  
+</body>
+</html>

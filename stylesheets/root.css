@@ -1,0 +1,276 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background: #7fc6bc url(../images/blue.png) repeat-x 0 80px;
+}
+
+body {
+  font-family: sans-serif;
+}
+
+#head {
+  background: #edf7f2;
+  color: #96ca2d;
+  height: 80px;
+}
+
+  #head #HeadInset {
+    margin: auto;
+    position: relative;
+    width: 990px;
+  }
+
+  #head h1 {
+    color: #333;
+    font-size: 30px;
+    height: 50px;
+    line-height: 60px;
+  }
+  
+  #head p {
+    height: 20px;
+    line-height: 20px;
+  }
+  
+  #nav {
+    position: absolute;
+    right: 0;
+    text-align: right;
+    top: 5px;
+    width: 150px;
+  }
+    
+    #nav li {
+      
+    }
+
+#shell {
+  margin: 10px auto 0 auto;
+  min-height: 640px;
+  position: relative;
+  width: 990px;
+}
+    
+    #stage {
+      left: 195px;
+      min-height: 400px;
+      position: absolute;
+      width: 600px;
+    }
+    
+    .column {
+      min-height: 200px;
+      position: absolute;
+      top: 30px;
+      width: 150px;
+    }
+    
+      .column h4 {
+        color: #edf7f2;
+      }
+
+    #UnsolvedMatches {
+      left: 0;
+    }
+
+    #SolvedMatches {
+      right: 0;
+    }
+
+#SolvedMatches *, #UnsolvedMatches *, #stage * {
+  xdisplay: none;
+}
+
+
+ul#solved li {
+  list-style: none;
+}
+
+div.slot, div#untyped {
+  -moz-border-radius: 5px;
+}
+
+div#typed {
+  height: 100px;
+  left: 0;
+  position: absolute;
+  top: 120px;
+  width: 600px;
+}
+
+div#untyped {
+  background: #7fc6bc;
+  height: 100px;
+  left: 0;
+  margin-top: 10px;
+  position: absolute;
+  top: 220px;
+  width: 600px;
+}
+
+  div.slot {
+    background: #edf7f2;
+    float: left;
+    font-family: monospace;
+    font-size: 70px;
+    height: 80px;
+    line-height: 80px;
+    margin: 10px;
+    text-align: center;
+    width: 80px;
+  }
+  
+  div#typed div.slot {
+    color: #96ca2d;
+  }
+
+  div.clear {
+    clear: both;
+  }
+
+  #content {
+    background: #b5e655 url(../images/green.png) repeat-x;
+  }
+
+    #content .margin {
+      margin: auto;
+      padding: 40px;
+      width: 990px;
+    }
+    
+      #content p {
+        line-height: 1.5em;
+        padding-bottom: .5em;
+      }
+    
+      .ColumnLeft {
+        float: left;
+        width: 500px;
+      }
+
+      #content h1, #content h2, #content h3, #content h4, #content h5, #content h6 {
+        padding-top: 1em;
+      }
+      
+  input#input, div.mask {
+    background: #edf7f2;
+    border: none;
+    color: #333;
+    font-size: 10px;
+    height: 1px;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 1px;
+    z-index: 1;
+  }
+  
+  div.mask {
+    background: #edf7f2;
+    height: 20px;
+    width: 20px;
+    z-index: 2 !important;
+  }
+  
+  div#matches {
+    font-size: 15px;
+    position: relative;
+  }
+    
+    div#matches div.match {
+      clear: both;
+      height: 16px;
+    }
+
+      div#matches div.match div.character {
+        background: #edf7f2;
+        border-bottom: 2px solid #4bb5c1;
+        clear: none;
+        float: left;
+        font-family: monospace;
+        height: 15px;
+        line-height: 16px;
+        margin: 2px;
+        padding: 0 2px;
+        text-align: center;
+        width: 12px;
+      }
+
+  div#score {
+    color: #edf7f2;
+    font-family: Georgia, serif;
+    font-size: 5em;
+    position: absolute;
+    text-align: center;
+    top: 350px;
+    width: 600px;
+  }
+
+p#tag {
+  display: none;
+  position: absolute;
+  text-align: center;
+  top: 400px;
+}
+
+a {
+  color: #4bb5c1;
+}
+a:hover {
+  background: #4bb5c1;
+  color: #fff;
+}
+#shell a, #content a {
+  color: #fff;
+}
+#content a {
+  background: #96ca2d;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.07em;
+}
+    
+    #swatches {
+      background: #fff;
+      bottom: 0;
+      height: 20px;
+      padding: 10px;
+      position: absolute;
+      right: 0;
+      width: 100px;
+    }
+      
+      #swatches div {
+        float: left;
+        height: 20px;
+        width: 20px;
+      }
+      
+      #swatch1 {
+        background: #96ca2d;
+      }
+    
+      #swatch2 {
+        background: #b5e655;
+      }
+    
+      #swatch3 {
+        background: #edf7f2;
+      }
+    
+      #swatch4 {
+        background: #4bb5c1;
+      }
+    
+      #swatch5 {
+        background: #7fc6bc;
+      }
+    
+.clear {
+  clear: both;
+}
+
