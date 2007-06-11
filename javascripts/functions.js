@@ -4,24 +4,17 @@ Document Setup
 */
 var debug = true;
 
+
 /*
 
 Adding a random method to Array
+  Warned that it might crash, if Math.random lands on a particular value
 */
-Object.extend(Array.prototype, {
-  rand: function(){
-    var reducedArray = this.clone();
-    var j = [];
-    for(i = 1; i <= this.length; i++){
-      var A = 0;
-      var B = this.length - j.length;
-      var randomIndex = Math.floor(A + (B - A) * Math.random());
-      j.push(reducedArray[randomIndex]);
-      reducedArray.splice(randomIndex, 1);
-    }
-    return j;
-  }
-});
+
+Array.prototype.rand = function(){
+  return this.sortBy(Math.random);
+}
+
 
 
 function init () {
@@ -61,9 +54,9 @@ function init () {
       "nor"
     ]
   );
-  var mask = Element('div', {class: 'mask'});;
 
-  new Insertion.Before("input", mask);
+
+  $('input').insert(Element('div', {class: 'mask'}), 'before');
 }
 
 
@@ -109,12 +102,13 @@ Anagram.prototype = {
     this.matches.each(function(node, i){
       var match = new Element('div', {class: 'match __' + node});
       new Insertion.Bottom('matches', match);
+      // new, wrap and insert
       node.split('').each(function(node, i){
-        var matchCharacter1 = new Element('div', {class: 'character'});
-        var matchCharacter2 = new Element('div', {style: 'display: none;'});
-        matchCharacter2.update(node);
-        new Insertion.Bottom(matchCharacter1, matchCharacter2);
-        new Insertion.Bottom(match, matchCharacter1);
+        match.insert(
+          Element('div', {class: 'character'}).insert(
+            Element('div', {style: 'display: none;'}).update(node),
+          'bottom'),
+        'bottom');
       });
     });
     this.matchesDivs = $$('div.match');
@@ -136,15 +130,12 @@ Anagram.prototype = {
         var slotsArray = this.untypedSlots;
         slotsArray.each(function(node, i){
           var t = setTimeout(function(){
-            new Effect.Grow(
-              node,
-              {
-                duration: .3,
-                afterFinish: function(){
-                  if (node == slotsArray.last()) new Effect.Appear('matches');
-                }
+            new Effect.Grow(node, {
+              duration: .3,
+              afterFinish: function(){
+                if (node == slotsArray.last()) new Effect.Appear('matches');
               }
-            );
+            });
           }, i * 100);
         });
       }.bindAsEventListener(this)
@@ -167,6 +158,8 @@ Anagram.prototype = {
           var characterDivs = node.getElementsBySelector(".character div");
           characterDivs.each(function(node, i){
           // fade in, then drop out
+          // possibly use scoped effect queues, vs (unreadable) nested
+          // and Effect.multiple('element', Effect.Fade, {speed: 0.5});
             new Effect.Appear(node, {
               duration: .3,
               afterFinish: function(){
@@ -205,10 +198,9 @@ Anagram.prototype = {
   updateSolved: function(typedWord){
     if (this.solved == 0) $('solved').update('');
     var ___match = '___' + typedWord;
-    var li = new Element('li', {id: ___match, style: 'display: none;'});
     var a = ['<a href="http://yubnub.org/parser/parse?command=g define ', typedWord, '" target="_blank" title="Define ', typedWord ,'">', typedWord, '</a>'].join('');
-    li.update(a);
-    new Insertion.Bottom('solved', li);
+    var li = new Element('li', {id: ___match, style: 'display: none;'}).insert(a);
+    $('solved').insert(li, 'bottom');
     new Effect.Appear($(___match));
   },
   updateTyped: function(c){
@@ -319,6 +311,7 @@ Anagram.prototype = {
 
 
 /*
+
 For debugging purposes...
 */
 function cl (str) {
