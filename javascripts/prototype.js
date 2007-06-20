@@ -24,8 +24,8 @@ var Prototype = {
        document.createElement('form').__proto__)
   },
 
-  ScriptFragment: '<script[^>]*>([\u0001-\uFFFF]*?)</script>',
-  JSONFilter: /^\/\*-secure-\s*(.*)\s*\*\/\s*$/,
+  ScriptFragment: '<script[^>]*>([\\S\\s]*?)<\/script>',
+  JSONFilter: /^\/\*-secure-([\s\S]*)\*\/\s*$/,
 
   emptyFunction: function() { },
   K: function(x) { return x }
@@ -146,30 +146,6 @@ Object.extend(Function.prototype, {
 
 Function.prototype.defer = Function.prototype.delay.curry(0.01);
 
-Object.extend(Number.prototype, {
-  toColorPart: function() {
-    return this.toPaddedString(2, 16);
-  },
-
-  succ: function() {
-    return this + 1;
-  },
-
-  times: function(iterator) {
-    $R(0, this, true).each(iterator);
-    return this;
-  },
-
-  toPaddedString: function(length, radix) {
-    var string = this.toString(radix || 10);
-    return '0'.times(length - string.length) + string;
-  },
-
-  toJSON: function() {
-    return isFinite(this) ? this.toString() : 'null';
-  }
-});
-
 Date.prototype.toJSON = function() {
   return '"' + this.getFullYear() + '-' +
     (this.getMonth() + 1).toPaddedString(2) + '-' +
@@ -278,7 +254,7 @@ Object.extend(String.prototype, {
     length = length || 30;
     truncation = truncation === undefined ? '...' : truncation;
     return this.length > length ?
-      this.slice(0, length - truncation.length) + truncation : this;
+      this.slice(0, length - truncation.length) + truncation : String(this);
   },
 
   strip: function() {
@@ -397,11 +373,15 @@ Object.extend(String.prototype, {
     return this.sub(filter || Prototype.JSONFilter, '#{1}');
   },
 
+  isJSON: function() {
+    var str = this.replace(/\\./g, '@').replace(/"[^"\\\n\r]*"/g, '');
+    return (/^[,:{}\[\]0-9.\-+Eaeflnr-u \n\r\t]*$/).test(str);
+  },
+
   evalJSON: function(sanitize) {
     var json = this.unfilterJSON();
     try {
-      if (!sanitize || (/^("(\\.|[^"\\\n\r])*?"|[,:{}\[\]0-9.\-+Eaeflnr-u \n\r\t])+?$/.test(json)))
-        return eval('(' + json + ')');
+      if (!sanitize || json.isJSON()) return eval('(' + json + ')');
     } catch (e) { }
     throw new SyntaxError('Badly formed JSON string: ' + this.inspect());
   },
@@ -805,6 +785,33 @@ if (Prototype.Browser.Opera){
     return array;
   }
 }
+Object.extend(Number.prototype, {
+  toColorPart: function() {
+    return this.toPaddedString(2, 16);
+  },
+
+  succ: function() {
+    return this + 1;
+  },
+
+  times: function(iterator) {
+    $R(0, this, true).each(iterator);
+    return this;
+  },
+
+  toPaddedString: function(length, radix) {
+    var string = this.toString(radix || 10);
+    return '0'.times(length - string.length) + string;
+  },
+
+  toJSON: function() {
+    return isFinite(this) ? this.toString() : 'null';
+  }
+});
+
+$w('abs round ceil floor').each(function(method){
+  Number.prototype[method] = Math[method].methodize()
+});
 var Hash = function(object) {
   if (object instanceof Hash) this.merge(object);
   else Object.extend(this, object || {});
@@ -867,6 +874,13 @@ Object.extend(Hash.prototype, {
 
   values: function() {
     return this.pluck('value');
+  },
+
+  index: function(value) {
+    var match = this.detect(function(pair) {
+      return pair.value === value;
+    });
+    return match && match.key;
   },
 
   merge: function(hash) {
@@ -1222,8 +1236,10 @@ Object.extend(Object.extend(Ajax.Updater.prototype, Ajax.Request.prototype), {
 
     if (receiver = $(receiver)) {
       if (options.insertion) {
-        if (typeof options.insertion == 'string')
-          receiver.insert(response, options.insertion);
+        if (typeof options.insertion == 'string') {
+          var insertion = {}; insertion[options.insertion] = response;
+          receiver.insert(insertion);
+        }
         else options.insertion(receiver, response);
       }
       else receiver.update(response);
@@ -1296,22 +1312,7 @@ if (Prototype.BrowserFeatures.XPath) {
       results.push(query.snapshotItem(i));
     return results;
   };
-
-  document.getElementsByClassName = function(className, parentElement) {
-    var q = ".//*[contains(concat(' ', @class, ' '), ' " + className + " ')]";
-    return document._getElementsByXPath(q, parentElement);
-  }
-
-} else document.getElementsByClassName = function(className, parentElement) {
-  var children = ($(parentElement) || document.body).getElementsByTagName('*');
-  var elements = [], child;
-  for (var i = 0, length = children.length; i < length; i++) {
-    child = children[i];
-    if (Element.hasClassName(child, className))
-      elements.push(Element.extend(child));
-  }
-  return elements;
-};
+}
 
 /*--------------------------------------------------------------------------*/
 
@@ -1383,23 +1384,34 @@ Element.Methods = {
     return element;
   },
 
-  insert: function(element, content, position) {
+  insert: function(element, insertions) {
     element = $(element);
-    position = (position || 'bottom').toLowerCase();
-    var t = Element._insertionTranslations[position], range;
 
-    if (content && content.ownerDocument === document) {
-      t.insert(element, content);
-      return element;
+    if (typeof insertions == 'string' || typeof insertions == 'number' ||
+        (insertions && insertions.ownerDocument === document))
+          insertions = {bottom:insertions};
+
+    var content, t, range;
+
+    for (position in insertions) {
+      content  = insertions[position];
+      position = position.toLowerCase();
+      t = Element._insertionTranslations[position];
+
+      if (content && content.ownerDocument === document) {
+        t.insert(element, content);
+        continue;
+      }
+
+      content = String.interpret(content);
+
+      range = element.ownerDocument.createRange();
+      t.initializeRange(element, range);
+      t.insert(element, range.createContextualFragment(content.stripScripts()));
+
+      content.evalScripts.bind(content).defer();
     }
 
-    content = content.toString();
-
-    range = element.ownerDocument.createRange();
-    t.initializeRange(element, range);
-    t.insert(element, range.createContextualFragment(content.stripScripts()));
-
-    content.evalScripts.bind(content).defer();
     return element;
   },
 
@@ -1510,10 +1522,6 @@ Element.Methods = {
     return Selector.findChildElements(element, args);
   },
 
-  getElementsByClassName: function(element, className) {
-    return document.getElementsByClassName(className, element);
-  },
-
   readAttribute: function(element, name) {
     element = $(element);
     if (Prototype.Browser.IE) {
@@ -1561,11 +1569,8 @@ Element.Methods = {
   hasClassName: function(element, className) {
     if (!(element = $(element))) return;
     var elementClassName = element.className;
-    if (elementClassName.length == 0) return false;
-    if (elementClassName == className ||
-        elementClassName.match(new RegExp("(^|\\s)" + className + "(\\s|$)")))
-      return true;
-    return false;
+    return (elementClassName.length > 0 && (elementClassName == className ||
+      elementClassName.match(new RegExp("(^|\\s)" + className + "(\\s|$)"))));
   },
 
   addClassName: function(element, className) {
@@ -1622,7 +1627,7 @@ Element.Methods = {
 
   scrollTo: function(element) {
     element = $(element);
-    var pos = Position.cumulativeOffset(element);
+    var pos = element.cumulativeOffset();
     window.scrollTo(pos[0], pos[1]);
     return element;
   },
@@ -1760,7 +1765,7 @@ Element.Methods = {
 
   absolutize: function(element) {
     element = $(element);
-    if (element.style.position == 'absolute') return;
+    if (element.getStyle('position') == 'absolute') return;
     // Position.prepare(); // To be done manually by Scripty when it needs it.
 
     var offsets = element.positionedOffset();
@@ -1784,7 +1789,7 @@ Element.Methods = {
 
   relativize: function(element) {
     element = $(element);
-    if (element.style.position == 'relative') return;
+    if (element.getStyle('position') == 'relative') return;
     // Position.prepare(); // To be done manually by Scripty when it needs it.
 
     element.style.position = 'relative';
@@ -1828,14 +1833,14 @@ Element.Methods = {
       valueL += element.offsetLeft || 0;
 
       // Safari fix
-      if (element.offsetParent == document.body)
-        if (Element.getStyle(element,'position')=='absolute') break;
+      if (element.offsetParent == document.body &&
+        Element.getStyle(element, 'position') == 'absolute') break;
 
     } while (element = element.offsetParent);
 
     element = forElement;
     do {
-      if (!window.opera || element.tagName=='BODY') {
+      if (!Prototype.Browser.Opera || element.tagName == 'BODY') {
         valueT -= element.scrollTop  || 0;
         valueL -= element.scrollLeft || 0;
       }
@@ -1852,7 +1857,7 @@ Element.Methods = {
       setHeight:  true,
       offsetTop:  0,
       offsetLeft: 0
-    }, arguments[2] || {})
+    }, arguments[2] || {});
 
     // find page position of source
     source = $(source);
@@ -1864,9 +1869,9 @@ Element.Methods = {
     var parent = null;
     // delta [0,0] will do fine with position: fixed elements,
     // position:absolute needs offsetParent deltas
-    if (Element.getStyle(element,'position') == 'absolute') {
+    if (Element.getStyle(element, 'position') == 'absolute') {
       parent = element.getOffsetParent();
-      delta = parent.getViewportOffset();
+      delta = parent.viewportOffset();
     }
 
     // correct by body offsets (fixes Safari)
@@ -1876,13 +1881,49 @@ Element.Methods = {
     }
 
     // set position
-    if(options.setLeft)   element.style.left  = (p[0] - delta[0] + options.offsetLeft) + 'px';
-    if(options.setTop)    element.style.top   = (p[1] - delta[1] + options.offsetTop) + 'px';
-    if(options.setWidth)  element.style.width = source.offsetWidth + 'px';
-    if(options.setHeight) element.style.height = source.offsetHeight + 'px';
+    if (options.setLeft)   element.style.left  = (p[0] - delta[0] + options.offsetLeft) + 'px';
+    if (options.setTop)    element.style.top   = (p[1] - delta[1] + options.offsetTop) + 'px';
+    if (options.setWidth)  element.style.width = source.offsetWidth + 'px';
+    if (options.setHeight) element.style.height = source.offsetHeight + 'px';
     return element;
   }
 };
+
+if (!document.getElementsByClassName) document.getElementsByClassName = function(instanceMethods){
+  function isArray(className) {
+    return ;
+  }
+  function iter(name) {
+    return name.blank() ? null : "[contains(concat(' ', @class, ' '), ' " + name + " ')]";
+  }
+
+  instanceMethods.getElementsByClassName = Prototype.BrowserFeatures.XPath ?
+  function(element, className) {
+    className = className.toString().strip();
+    var cond = /\s/.test(className) ? $w(className).map(iter).join('') : iter(className);
+    return cond ? document._getElementsByXPath('.//*' + cond, element) : [];
+  } : function(element, className) {
+    className = className.toString().strip();
+    var elements = [], classNames = (/\s/.test(className) ? $w(className) : null);
+    if (!classNames && !className) return elements;
+
+    var nodes = $(element).getElementsByTagName('*');
+    className = ' ' + className + ' ';
+
+    for (var i = 0, child, cn; child = nodes[i]; i++) {
+      if (child.className && (cn = ' ' + child.className + ' ') && (cn.include(className) ||
+          (classNames && classNames.all(function(name) {
+            return !name.toString().blank() && cn.include(' ' + name + ' ');
+          }))))
+        elements.push(Element.extend(child));
+    }
+    return elements;
+  };
+
+  return function(className, parentElement) {
+    return $(parentElement || document.body).getElementsByClassName(className);
+  };
+}(Element.Methods);
 
 Object.extend(Element.Methods, {
   childElements: Element.Methods.immediateDescendants
@@ -1900,28 +1941,39 @@ Element._attributeTranslations = {
 
 
 if (!document.createRange || Prototype.Browser.Opera) {
-  Element.Methods.insert = function(element, content, position) {
+  Element.Methods.insert = function(element, insertions) {
     element = $(element);
-    position = (position || 'bottom').toLowerCase();
-    var t = Element._insertionTranslations, pos = t[position], tagName;
 
-    if (content && content.ownerDocument === document) {
-      pos.insert(element, content);
-      return element;
+    if (typeof insertions == 'string' || typeof insertions == 'number' ||
+        (insertions && insertions.ownerDocument === document))
+          insertions = {bottom:insertions};
+
+    var t = Element._insertionTranslations, content, position, pos, tagName;
+
+    for (position in insertions) {
+      content  = insertions[position];
+      position = position.toLowerCase();
+      pos      = t[position];
+
+      if (content && content.ownerDocument === document) {
+        pos.insert(element, content);
+        continue;
+      }
+
+      content = String.interpret(content);
+      tagName = ((position == 'before' || position == 'after')
+        ? element.parentNode : element).tagName.toUpperCase();
+
+      if (t.tags[tagName]) {
+        var fragments = Element._getContentFromAnonymousElement(tagName, content.stripScripts());
+        if (position == 'top' || position == 'after') fragments.reverse();
+        fragments.each(pos.insert.curry(element));
+      }
+      else element.insertAdjacentHTML(pos.adjacency, content.stripScripts());
+
+      content.evalScripts.bind(content).defer();
     }
 
-    content = content.toString();
-    tagName = ((position == 'before' || position == 'after')
-      ? element.parentNode : element).tagName.toUpperCase();
-
-    if (t.tags[tagName]) {
-      var fragments = Element._getContentFromAnonymousElement(tagName, content.stripScripts());
-      if (position == 'top' || position == 'after') fragments.reverse();
-      fragments.each(pos.insert.curry(element));
-    }
-    else element.insertAdjacentHTML(pos.adjacency, content.stripScripts());
-
-    content.evalScripts.bind(content).defer();
     return element;
   }
 }
@@ -1967,13 +2019,17 @@ else if (Prototype.Browser.IE) {
   };
 
   Element.Methods.setOpacity = function(element, value) {
+    function stripAlpha(filter){
+      return filter.replace(/alpha\([^\)]*\)/gi,'');
+    }
     element = $(element);
     var filter = element.getStyle('filter'), style = element.style;
     if (value == 1 || value === '') {
-      style.filter = filter.replace(/alpha\([^\)]*\)/gi,'');
+      (filter = stripAlpha(filter)) ?
+        style.filter = filter : style.removeAttribute('filter');
       return element;
     } else if (value < 0.00001) value = 0;
-    style.filter = filter.replace(/alpha\([^\)]*\)/gi, '') +
+    style.filter = stripAlpha(filter) +
       'alpha(opacity=' + (value * 100) + ')';
     return element;
   };
@@ -2049,6 +2105,23 @@ else if (Prototype.Browser.Gecko) {
 }
 
 else if (Prototype.Browser.WebKit) {
+  Element.Methods.setOpacity = function(element, value) {
+    element = $(element);
+    element.style.opacity = (value == 1 || value === '') ? '' :
+      (value < 0.00001) ? 0 : value;
+
+    if (value == 1)
+      if(element.tagName == 'IMG' && element.width) {
+        element.width++; element.width--;
+      } else try {
+        var n = document.createTextNode(' ');
+        element.appendChild(n);
+        element.removeChild(n);
+      } catch (e) {}
+
+    return element;
+  }
+
   // Safari returns margins on body which is incorrect if the child is absolutely
   // positioned.  For performance reasons, redefine Position.cumulativeOffset for
   // KHTML/WebKit only.
@@ -2166,6 +2239,13 @@ Element.Methods.ByTag = {};
 
 Object.extend(Element, Element.Methods);
 
+if (!Prototype.BrowserFeatures.ElementExtensions &&
+    document.createElement('div').__proto__) {
+  window.HTMLElement = {};
+  window.HTMLElement.prototype = document.createElement('div').__proto__;
+  Prototype.BrowserFeatures.ElementExtensions = true;
+}
+
 Element.extend = (function() {
   if (Prototype.BrowserFeatures.SpecificElementExtensions)
     return Prototype.K;
@@ -2204,13 +2284,6 @@ Element.extend = (function() {
   extend.refresh();
   return extend;
 })();
-
-if (!Prototype.BrowserFeatures.ElementExtensions &&
-    document.createElement('div').__proto__) {
-  window.HTMLElement = {};
-  window.HTMLElement.prototype = document.createElement('div').__proto__;
-  Prototype.BrowserFeatures.ElementExtensions = true;
-}
 
 Element.hasAttribute = function(element, attribute) {
   if (element.hasAttribute) return element.hasAttribute(attribute);
@@ -2679,7 +2752,8 @@ Object.extend(Selector, {
 
     id: function(nodes, root, id, combinator) {
       var targetNode = $(id), h = Selector.handlers;
-      if (!nodes && root == document) return targetNode ? [targetNode] : [];
+      if (!targetNode) return [];
+      if (!nodes && root == document) return [targetNode];
       if (nodes) {
         if (combinator) {
           if (combinator == 'child') {
@@ -3275,14 +3349,9 @@ Object.extend(Event, {
     }
   },
 
-  // find the first node with the given tagName, starting from the
-  // node the event was triggered on; traverses the DOM upwards
-  findElement: function(event, tagName) {
+  findElement: function(event, expression) {
     var element = Event.element(event);
-    while (element.parentNode && (!element.tagName ||
-        (element.tagName.toUpperCase() != tagName.toUpperCase())))
-      element = element.parentNode;
-    return element;
+    return element.match(expression) ? element : element.up(expression);
   },
 
   observers: false,
@@ -3347,19 +3416,19 @@ Element.Methods.childOf = Element.Methods.descendantOf;
 
 var Insertion = {
   Before: function(element, content) {
-    return Element.insert(element, content, 'before');
+    return Element.insert(element, {before:content});
   },
 
   Top: function(element, content) {
-    return Element.insert(element, content, 'top');
+    return Element.insert(element, {top:content});
   },
 
   Bottom: function(element, content) {
-    return Element.insert(element, content, 'bottom');
+    return Element.insert(element, {bottom:content});
   },
 
   After: function(element, content) {
-    return Element.insert(element, content, 'after');
+    return Element.insert(element, {after:content});
   }
 }
 
