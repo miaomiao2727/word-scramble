@@ -156,6 +156,9 @@ Effect.Transitions = {
         1 - ((pos * pulses * 2) - Math.floor(pos * pulses * 2))
       );
   },
+  spring: function(pos) { 
+    return 1 - (Math.cos(pos * 4.5 * Math.PI) * Math.exp(-pos * 6)); 
+  },
   none: function(pos) {
     return 0;
   },
@@ -255,7 +258,7 @@ Effect.Base.prototype = {
         (options[eventName] ? 'this.options.'+eventName+'(this);' : '')
       );
     }
-    if(options.transition === false) options.transition = Effect.Transitions.linear;
+    if(options && options.transition === false) options.transition = Effect.Transitions.linear;
     this.options      = Object.extend(Object.extend({},Effect.DefaultOptions), options || {});
     this.currentFrame = 0;
     this.state        = 'idle';
@@ -267,15 +270,15 @@ Effect.Base.prototype = {
     
     eval('this.render = function(pos){ '+
       'if(this.state=="idle"){this.state="running";'+
-      codeForEvent(options,'beforeSetup')+
+      codeForEvent(this.options,'beforeSetup')+
       (this.setup ? 'this.setup();':'')+ 
-      codeForEvent(options,'afterSetup')+
+      codeForEvent(this.options,'afterSetup')+
       '};if(this.state=="running"){'+
       'pos=this.options.transition(pos)*'+this.fromToDelta+'+'+this.options.from+';'+
       'this.position=pos;'+
-      codeForEvent(options,'beforeUpdate')+
+      codeForEvent(this.options,'beforeUpdate')+
       (this.update ? 'this.update(pos);':'')+
-      codeForEvent(options,'afterUpdate')+
+      codeForEvent(this.options,'afterUpdate')+
       '}}');
     
     this.event('beforeStart');
@@ -1058,35 +1061,53 @@ Element.CSS_PROPERTIES = $w(
   
 Element.CSS_LENGTH = /^(([\+\-]?[0-9\.]+)(em|ex|px|in|cm|mm|pt|pc|\%))|0$/;
 
+String.__parseStyleElement = document.createElement('div');
 String.prototype.parseStyle = function(){
-  var element = document.createElement('div');
-  element.innerHTML = '<div style="' + this + '"></div>';
-  var style = element.childNodes[0].style, styleRules = $H();
+  String.__parseStyleElement.innerHTML = '<div style="' + this + '"></div>';
+  var style = String.__parseStyleElement.childNodes[0].style, styleRules = $H();
   
   Element.CSS_PROPERTIES.each(function(property){
     if(style[property]) styleRules[property] = style[property]; 
   });
-  if(Prototype.Browser.IE && this.indexOf('opacity') > -1) {
+  
+  if(Prototype.Browser.IE && this.indexOf('opacity') > -1)
     styleRules.opacity = this.match(/opacity:\s*((?:0|1)?(?:\.\d*)?)/)[1];
-  }
+
   return styleRules;
 };
 
-Element.morph = function(element, style) {
-  new Effect.Morph(element, Object.extend({ style: style }, arguments[2] || {}));
-  return element;
+Effect.Methods = {
+  morph: function(element, style) {
+    element = $(element);
+    new Effect.Morph(element, Object.extend({ style: style }, arguments[2] || {}));
+    return element;
+  },
+  visualEffect: function(element, effect, options) {
+    element = $(element)
+    var s = effect.dasherize().camelize(), klass = s.charAt(0).toUpperCase() + s.substring(1);
+    new Effect[klass](element, options);
+    return element;
+  },
+  highlight: function(element, options) {
+    element = $(element);
+    new Effect.Highlight(element, options);
+    return element;
+  }
 };
 
-['getInlineOpacity','forceRerendering','setContentZoom',
- 'collectTextNodes','collectTextNodesIgnoreClass','morph'].each( 
-  function(f) { Element.Methods[f] = Element[f]; }
+$w('fade appear grow shrink fold blindUp blindDown slideUp slideDown '+
+  'pulsate shake puff squish switchOff dropOut').each(
+  function(effect) { 
+    Effect.Methods[effect] = function(element, options){
+      element = $(element);
+      Effect[effect.charAt(0).toUpperCase() + effect.substring(1)](element, options);
+      return element;
+    }
+  }
 );
 
-Element.Methods.visualEffect = function(element, effect, options) {
-  s = effect.dasherize().camelize();
-  effect_class = s.charAt(0).toUpperCase() + s.substring(1);
-  new Effect[effect_class](element, options);
-  return $(element);
-};
+$w('getInlineOpacity forceRerendering setContentZoom collectTextNodes collectTextNodesIgnoreClass').each( 
+  function(f) { Effect.Methods[f] = Element[f]; }
+);
 
-Element.addMethods();
+Element.addMethods(Effect.Methods);
