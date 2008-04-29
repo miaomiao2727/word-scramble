@@ -57,8 +57,11 @@ function init () {
 
 
   $('input').insert(Element('div', {class: 'mask'}), 'before');
+  
+  var w = new Word();
+  
 }
-
+//  end init
 
 /*
 
@@ -308,8 +311,34 @@ Anagram.prototype = {
     }.bindAsEventListener(this)).focus();;
   }
 };
+/* end Anagram class */
 
+var Word = Class.create();
 
+Word.prototype = {
+  initialize: function(){
+    this.requestWord();
+  },
+  requestWord: function(){
+    var url = 'http://spreadsheets.google.com/feeds/cells/pWz7gSVQ-vp9MBRPEJ0XTRg/od6/public/values?alt=json-in-script&callback=processRequest';
+
+    new Ajax.Request(
+      url,
+      {
+        method: 'get',
+        onSuccess: function(r){
+          cl(r.responseText);
+        },
+        onComplete: function(r){
+          cl(r.responseText);
+        }
+      }
+    );
+  }
+};
+function processRequest (h) {
+  cl($H(h));
+}
 /*
 
 For debugging purposes...
