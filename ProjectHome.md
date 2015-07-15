@@ -1,0 +1,1 @@
+This game was a personal exercise by Matt Garrett at creating a Prototype and Scriptaculous powered JavaScript game. This was inspired by Text Twist and some other game with nearly identical gameplay.
